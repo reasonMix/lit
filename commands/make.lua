@@ -4,6 +4,8 @@ return function ()
   local pathJoin = require('luvi').path.join
 
   local cwd = uv.cwd()
+  print('args ',args[1],args[2],args[3],args[4])
+
   local source = args[2] and pathJoin(cwd, args[2])
   local target = args[3] and pathJoin(cwd, args[3])
   local luvi_source = args[4] and pathJoin(cwd, args[4])

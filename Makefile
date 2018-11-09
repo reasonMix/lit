@@ -6,9 +6,9 @@ LUVI_URL=https://github.com/luvit/luvi/releases/download/v$(LUVI_VERSION)/luvi-r
 lit: luvi $(APP_FILES)
 	./luvi . -- make . lit ./luvi
 
-luvi:
-	curl -L $(LUVI_URL) > luvi
-	chmod +x luvi
+#luvi:
+#	curl -L $(LUVI_URL) > luvi
+#	chmod +x luvi
 
 test: lit
 	tests/run.sh
