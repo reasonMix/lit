@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/http-codec"
-  version = "3.0.2"
+  version = "3.0.4"
   homepage = "https://github.com/luvit/luvit/blob/master/deps/http-codec.lua"
   description = "A simple pair of functions for converting between hex and raw strings."
   tags = {"codec", "http"}
@@ -71,22 +71,26 @@ local STATUS_CODES = {
   [415] = 'Unsupported Media Type',
   [416] = 'Requested Range Not Satisfiable',
   [417] = 'Expectation Failed',
-  [418] = "I'm a teapot",               -- RFC 2324
-  [422] = 'Unprocessable Entity',       -- RFC 4918
-  [423] = 'Locked',                     -- RFC 4918
-  [424] = 'Failed Dependency',          -- RFC 4918
-  [425] = 'Unordered Collection',       -- RFC 4918
-  [426] = 'Upgrade Required',           -- RFC 2817
+  [418] = "I'm a teapot",                       -- RFC 2324
+  [422] = 'Unprocessable Entity',               -- RFC 4918
+  [423] = 'Locked',                             -- RFC 4918
+  [424] = 'Failed Dependency',                  -- RFC 4918
+  [425] = 'Unordered Collection',               -- RFC 4918
+  [426] = 'Upgrade Required',                   -- RFC 2817
+  [428] = 'Precondition Required',              -- RFC 6585
+  [429] = 'Too Many Requests',                  -- RFC 6585
+  [431] = 'Request Header Fields Too Large',    -- RFC 6585
   [500] = 'Internal Server Error',
   [501] = 'Not Implemented',
   [502] = 'Bad Gateway',
   [503] = 'Service Unavailable',
   [504] = 'Gateway Time-out',
   [505] = 'HTTP Version not supported',
-  [506] = 'Variant Also Negotiates',    -- RFC 2295
-  [507] = 'Insufficient Storage',       -- RFC 4918
+  [506] = 'Variant Also Negotiates',            -- RFC 2295
+  [507] = 'Insufficient Storage',               -- RFC 4918
   [509] = 'Bandwidth Limit Exceeded',
-  [510] = 'Not Extended'                -- RFC 2774
+  [510] = 'Not Extended',                       -- RFC 2774
+  [511] = 'Network Authentication Required'     -- RFC 6585
 }
 
 local function encoder()
@@ -200,7 +204,7 @@ local function decoder()
     -- Parse the header lines
     while true do
       local key, value
-      _, offset, key, value = find(chunk, "^([^:\r\n]+): *([^\r\n]+)\r?\n", offset + 1)
+      _, offset, key, value = find(chunk, "^([^:\r\n]+): *([^\r\n]*)\r?\n", offset + 1)
       if not offset then break end
       local lowerKey = lower(key)
 
@@ -245,7 +249,12 @@ local function decoder()
     local len, term
     len, term = match(chunk, "^(%x+)(..)", index)
     if not len then return end
-    assert(term == "\r\n")
+    if term ~= "\r\n" then
+      -- Wait for full chunk-size\r\n header
+      if #chunk < 18 then return end
+      -- But protect against evil clients by refusing chunk-sizes longer than 16 hex digits.
+      error("chunk-size field too large")
+    end
     index = index + #len + 2
     local offset = index - 1
     local length = tonumber(len, 16)

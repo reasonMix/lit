@@ -77,7 +77,7 @@ local jsonStringify = require('json').stringify
 local jsonParse = require('json').parse
 local modes = require('git').modes
 local exportZip = require('export-zip')
-local calculateDeps = require('calculate-deps')
+local calculateHistoricDeps = require('calculate-historic-deps')
 local queryDb = require('pkg').queryDb
 local installDeps = require('install-deps').toDb
 local ffi = require('ffi')
@@ -267,19 +267,33 @@ return function (db, prefix)
       elseif version:sub(1,1) == "v" then
         version = version:sub(2)
       end
-      local meta, kind, hash = queryDb(db, db.read(author, name, version))
+      local tagHash = db.read(author, name, version)
+      local meta, kind, hash = queryDb(db, tagHash)
 
       if kind ~= "tree" then
         error("Can only create zips from trees")
       end
 
       -- Use snapshot if there is one
+      local snapshotExists = false
       if meta.snapshot then
-        hash = meta.snapshot
-      else
+        snapshotExists = pcall(function() db.loadAny(meta.snapshot) end)
+        if snapshotExists then
+          hash = meta.snapshot
+        end
+      end
+
+      if not snapshotExists then
+        local tag = db.loadAs('tag', tagHash)
+        local tagDate = tag.tagger.date.seconds
         local deps = {}
-        calculateDeps(db, deps, meta.dependencies)
+        calculateHistoricDeps(db, deps, meta.dependencies, tagDate)
         hash = installDeps(db, hash, deps)
+      end
+
+      -- Make sure the resolved snapshot hash matches
+      if not snapshotExists then
+        assert(hash == meta.snapshot, "Snapshot missing and resolved snapshot hash differs from existing hash (hash="..meta.snapshot..", resolved="..hash..")")
       end
 
       local zip = exportZip(db, hash)

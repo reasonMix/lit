@@ -1,6 +1,9 @@
 
-$LUVI_VERSION = "2.7.6"
-$LIT_VERSION = "3.5.2"
+$LUVI_VERSION = "2.9.3"
+$LIT_VERSION = "3.7.3"
+# Environment variables take precedence
+if (test-path env:LUVI_VERSION) { $LUVI_VERSION = $env:LUVI_VERSION }
+if (test-path env:LIT_VERSION) { $LIT_VERSION = $env:LIT_VERSION }
 
 if (test-path env:LUVI_ARCH) {
   $LUVI_ARCH = $env:LUVI_ARCH
@@ -19,6 +22,7 @@ param (
   [string]$url,
   [string]$file
  )
+  [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls11 -bor [System.Net.SecurityProtocolType]::Tls12;
   Write-Host "Downloading $url to $file"
   $downloader = new-object System.Net.WebClient
   $downloader.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;

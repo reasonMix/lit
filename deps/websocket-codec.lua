@@ -1,7 +1,7 @@
 --[[lit-meta
   name = "creationix/websocket-codec"
   description = "A codec implementing websocket framing and helpers for handshakeing"
-  version = "3.0.0"
+  version = "3.0.2"
   dependencies = {
     "creationix/base64@2.0.0",
     "creationix/sha1@1.0.0",
@@ -67,13 +67,13 @@ local function decode(chunk, index)
   local len = band(second, 0x7f)
   local offset
   if len == 126 then
-    if #chunk < 4 then return end
+    if length < 4 then return end
     len = bor(
       lshift(byte(chunk, start + 3), 8),
       byte(chunk, start + 4))
     offset = 4
   elseif len == 127 then
-    if #chunk < 10 then return end
+    if length < 10 then return end
     len = bor(
       lshift(byte(chunk, start + 3), 24),
       lshift(byte(chunk, start + 4), 16),
